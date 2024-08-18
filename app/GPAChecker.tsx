@@ -96,7 +96,7 @@ export default function GPAChecker() {
             <Info className="h-4 w-4" />
             <AlertTitle>No results yet</AlertTitle>
             <AlertDescription>
-              Enter your GPA and major, then click &quotCheck Eligibility&quot to see matching universities.
+              Enter your GPA and major, then click &quot;Check Eligibility&quot; to see matching universities.
             </AlertDescription>
           </Alert>
         )}
