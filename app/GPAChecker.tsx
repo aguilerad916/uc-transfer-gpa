@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import React, { useState, FormEvent, ChangeEvent } from 'react';
 import { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -96,7 +96,7 @@ export default function GPAChecker() {
             <Info className="h-4 w-4" />
             <AlertTitle>No results yet</AlertTitle>
             <AlertDescription>
-              Enter your GPA and major, then click "Check Eligibility" to see matching universities.
+              Enter your GPA and major, then click &quotCheck Eligibility&quot to see matching universities.
             </AlertDescription>
           </Alert>
         )}
