@@ -1,5 +1,5 @@
 
-import GPAChecker from './GPAChecker';
+import GPAChecker from '@/components/GPAChecker';
 
 export default function Home() {
   return (
