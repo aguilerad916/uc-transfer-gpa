@@ -7,34 +7,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Label } from './ui/label';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Info } from 'lucide-react';
-
-interface University {
-  name: string;
-  minGPA: number;
-  maxGPA: number;
-}
-
-const universitiesData: University[] = [
-  { name: 'UC Berkeley', minGPA: 3.7, maxGPA: 4.0 },
-  { name: 'UCLA', minGPA: 3.6, maxGPA: 4.0 },
-  { name: 'UC San Diego', minGPA: 3.5, maxGPA: 3.9 },
-  { name: 'UC Santa Barbara', minGPA: 3.3, maxGPA: 3.8 },
-  { name: 'UC Irvine', minGPA: 3.4, maxGPA: 3.9 },
-];
-
-const majors: string[] = ['Computer Science', 'Engineering', 'Biology', 'Business', 'Psychology'];
+import { ucAdmissionsData, UCAdmissionData } from '../../data/ucAdmissionData';
 
 export default function GPAChecker() {
   const [gpa, setGpa] = useState<string>('');
+  const [school, setSchool] = useState<string>('');
   const [major, setMajor] = useState<string>('');
-  const [results, setResults] = useState<University[]>([]);
+  const [result, setResult] = useState<string | null>(null);
+
+  const schools = Object.keys(ucAdmissionsData);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const eligibleUniversities = universitiesData.filter(
-      uni => parseFloat(gpa) >= uni.minGPA && parseFloat(gpa) <= uni.maxGPA
-    );
-    setResults(eligibleUniversities);
+    const gpaValue = parseFloat(gpa);
+    const majorData = ucAdmissionsData[school][major];
+    const [minAdmitGPA, maxAdmitGPA] = majorData.admitGPARange;
+    
+    if (gpaValue >= minAdmitGPA && gpaValue <= maxAdmitGPA) {
+      setResult(`Eligible for ${major} at ${school}. 
+        Admit GPA range: ${minAdmitGPA.toFixed(2)} - ${maxAdmitGPA.toFixed(2)}
+        Enroll GPA range: ${majorData.enrollGPARange[0].toFixed(2)} - ${majorData.enrollGPARange[1].toFixed(2)}
+        Admit rate: ${(majorData.admitRate * 100).toFixed(1)}%`);
+    } else {
+      setResult(`Not eligible for ${major} at ${school}. 
+        Required admit GPA range: ${minAdmitGPA.toFixed(2)} - ${maxAdmitGPA.toFixed(2)}
+        Your GPA: ${gpaValue.toFixed(2)}`);
+    }
   };
 
   const handleGpaChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -42,11 +40,7 @@ export default function GPAChecker() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="text-center">
-        <CardTitle>UC GPA Checker</CardTitle>
-        <CardDescription>Check your UC eligibility based on GPA and major</CardDescription>
-      </CardHeader>
+    <Card className="w-full max-w-md mx-auto p-9">
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -58,45 +52,55 @@ export default function GPAChecker() {
               onChange={handleGpaChange}
               min="0"
               max="4"
-              step="0.1"
+              step="0.01"
               required
-              placeholder="Enter your GPA (e.g., 3.5)"
+              placeholder="Enter your GPA (e.g., 3.75)"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="major">Major</Label>
-            <Select onValueChange={setMajor} required>
+            <Label htmlFor="school">UC School</Label>
+            <Select onValueChange={setSchool} required>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a major" />
+                <SelectValue placeholder="Select a UC school" />
               </SelectTrigger>
               <SelectContent>
-                {majors.map((m) => (
-                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                {schools.map((s) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+          {school && (
+            <div className="space-y-2">
+              <Label htmlFor="major">Major</Label>
+              <Select onValueChange={setMajor} required>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a major" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(ucAdmissionsData[school]).map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <Button type="submit" className="w-full">Check Eligibility</Button>
         </form>
       </CardContent>
       <CardFooter>
-        {results.length > 0 ? (
-          <div className="w-full text-center">
-            <h3 className="text-lg font-semibold mb-2">Eligible Universities:</h3>
-            <ul className="space-y-2">
-              {results.map((uni) => (
-                <li key={uni.name} className="bg-secondary p-2 rounded-md">
-                  {uni.name} (GPA range: {uni.minGPA} - {uni.maxGPA})
-                </li>
-              ))}
-            </ul>
-          </div>
+        {result ? (
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertTitle>Eligibility Result</AlertTitle>
+            <AlertDescription className="whitespace-pre-line">{result}</AlertDescription>
+          </Alert>
         ) : (
           <Alert>
             <Info className="h-4 w-4" />
             <AlertTitle>No results yet</AlertTitle>
             <AlertDescription>
-              Enter your GPA and major, then click &quot;Check Eligibility&quot; to see matching universities.
+              Enter your GPA, select a UC school and major, then click "Check Eligibility" to see if you meet the criteria.
             </AlertDescription>
           </Alert>
         )}
