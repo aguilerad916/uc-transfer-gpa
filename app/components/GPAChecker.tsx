@@ -100,7 +100,7 @@ export default function GPAChecker() {
             <Info className="h-4 w-4" />
             <AlertTitle>No results yet</AlertTitle>
             <AlertDescription>
-              Enter your GPA, select a UC school and major, then click "Check Eligibility" to see if you meet the criteria.
+              Enter your GPA, select a UC school and major, then click &quot;Check Eligibility&quot; to see if you meet the criteria.
             </AlertDescription>
           </Alert>
         )}
