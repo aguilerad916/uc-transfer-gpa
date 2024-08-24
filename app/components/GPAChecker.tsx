@@ -15,7 +15,7 @@ export default function GPAChecker() {
   const [major, setMajor] = useState<string>('');
   const [result, setResult] = useState<string | null>(null);
 
-  const schools = Object.keys(ucAdmissionsData);
+  const schools = Object.keys(ucAdmissionsData).sort();
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -23,14 +23,18 @@ export default function GPAChecker() {
     const majorData = ucAdmissionsData[school][major];
     const [minAdmitGPA, maxAdmitGPA] = majorData.admitGPARange;
     
-    if (gpaValue >= minAdmitGPA && gpaValue <= maxAdmitGPA) {
-      setResult(`Eligible for ${major} at ${school}. 
-        Admit GPA range: ${minAdmitGPA.toFixed(2)} - ${maxAdmitGPA.toFixed(2)}
-        Enroll GPA range: ${majorData.enrollGPARange[0].toFixed(2)} - ${majorData.enrollGPARange[1].toFixed(2)}
-        Admit rate: ${(majorData.admitRate * 100).toFixed(1)}%`);
+    if (gpaValue >= minAdmitGPA) {
+      let resultMessage = `Eligible for ${major} at ${school}.\n`;
+      if (gpaValue > maxAdmitGPA) {
+        resultMessage += `Your GPA (${gpaValue.toFixed(2)}) is above the typical admit range.\n`;
+      }
+      resultMessage += `Admit GPA range: ${minAdmitGPA.toFixed(2)} - ${maxAdmitGPA.toFixed(2)}\n`;
+      resultMessage += `Enroll GPA range: ${majorData.enrollGPARange[0].toFixed(2)} - ${majorData.enrollGPARange[1].toFixed(2)}\n`;
+      resultMessage += `Admit rate: ${(majorData.admitRate * 100).toFixed(1)}%`;
+      setResult(resultMessage);
     } else {
       setResult(`Not eligible for ${major} at ${school}. 
-        Required admit GPA range: ${minAdmitGPA.toFixed(2)} - ${maxAdmitGPA.toFixed(2)}
+        Required minimum GPA: ${minAdmitGPA.toFixed(2)}
         Your GPA: ${gpaValue.toFixed(2)}`);
     }
   };
@@ -78,7 +82,7 @@ export default function GPAChecker() {
                   <SelectValue placeholder="Select a major" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.keys(ucAdmissionsData[school]).map((m) => (
+                  {Object.keys(ucAdmissionsData[school]).sort().map((m) => (
                     <SelectItem key={m} value={m}>{m}</SelectItem>
                   ))}
                 </SelectContent>
