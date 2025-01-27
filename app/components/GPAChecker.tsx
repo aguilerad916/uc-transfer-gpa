@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, FormEvent, ChangeEvent } from 'react';
-import { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription } from './ui/card';
+import { Card, CardContent, CardFooter } from './ui/card';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -11,36 +11,56 @@ import { ucAdmissionsData, UCAdmissionData } from '../../data/ucAdmissionData';
 
 export default function GPAChecker() {
   const [gpa, setGpa] = useState<string>('');
-  const [school, setSchool] = useState<string>('');
   const [major, setMajor] = useState<string>('');
-  const [result, setResult] = useState<string | null>(null);
+  const [results, setResults] = useState<Array<{
+    school: string;
+    major: string;
+    admitGPARange: [number, number];
+    enrollGPARange: [number, number];
+    admitRate: number;
+  }> | null>(null);
 
-  const schools = Object.keys(ucAdmissionsData).sort();
+  // Get unique majors across all schools
+  const allMajors = new Set<string>();
+  Object.values(ucAdmissionsData).forEach(schoolData => {
+    Object.keys(schoolData).forEach(major => allMajors.add(major));
+  });
+  const majorsList = Array.from(allMajors).sort();
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const gpaValue = parseFloat(gpa);
-    const majorData = ucAdmissionsData[school][major];
-    const [minAdmitGPA, maxAdmitGPA] = majorData.admitGPARange;
-    
-    if (gpaValue >= minAdmitGPA) {
-      let resultMessage = `Eligible for ${major} at ${school}.\n`;
-      if (gpaValue > maxAdmitGPA) {
-        resultMessage += `Your GPA (${gpaValue.toFixed(2)}) is above the typical admit range.\n`;
-      }
-      resultMessage += `Admit GPA range: ${minAdmitGPA.toFixed(2)} - ${maxAdmitGPA.toFixed(2)}\n`;
-      resultMessage += `Enroll GPA range: ${majorData.enrollGPARange[0].toFixed(2)} - ${majorData.enrollGPARange[1].toFixed(2)}\n`;
-      resultMessage += `Admit rate: ${(majorData.admitRate * 100).toFixed(1)}%`;
-      setResult(resultMessage);
-    } else {
-      setResult(`Not eligible for ${major} at ${school}. 
-        Required minimum GPA: ${minAdmitGPA.toFixed(2)}
-        Your GPA: ${gpaValue.toFixed(2)}`);
-    }
-  };
+    const eligiblePrograms = [];
 
-  const handleGpaChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setGpa(e.target.value);
+    // Check each school and major combination
+    for (const [school, schoolData] of Object.entries(ucAdmissionsData)) {
+      if (major) {
+        // If major is selected, only check that specific major
+        if (schoolData[major]) {
+          const majorData = schoolData[major];
+          if (gpaValue >= majorData.admitGPARange[0]) {
+            eligiblePrograms.push({
+              school,
+              major,
+              ...majorData
+            });
+          }
+        }
+      } else {
+        // If no major selected, check all majors
+        for (const [majorName, majorData] of Object.entries(schoolData)) {
+          if (gpaValue >= majorData.admitGPARange[0]) {
+            eligiblePrograms.push({
+              school,
+              major: majorName,
+              ...majorData
+            });
+          }
+        }
+      }
+    }
+
+    setResults(eligiblePrograms.sort((a, b) => b.admitRate - a.admitRate));
   };
 
   return (
@@ -53,7 +73,7 @@ export default function GPAChecker() {
               type="number"
               id="gpa"
               value={gpa}
-              onChange={handleGpaChange}
+              onChange={(e) => setGpa(e.target.value)}
               min="0"
               max="4"
               step="0.01"
@@ -62,49 +82,44 @@ export default function GPAChecker() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="school">UC School</Label>
-            <Select onValueChange={setSchool} required>
+            <Label htmlFor="major">Major</Label>
+            <Select onValueChange={setMajor}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a UC school" />
+                <SelectValue placeholder="Select a major " />
               </SelectTrigger>
               <SelectContent>
-                {schools.map((s) => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                {majorsList.map((m) => (
+                  <SelectItem key={m} value={m}>{m}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          {school && (
-            <div className="space-y-2">
-              <Label htmlFor="major">Major</Label>
-              <Select onValueChange={setMajor} required>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a major" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.keys(ucAdmissionsData[school]).sort().map((m) => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          <Button type="submit" className="w-full">Check Eligibility</Button>
+          <Button type="submit" className="w-full">Find Eligible Programs</Button>
         </form>
       </CardContent>
       <CardFooter>
-        {result ? (
+        {results ? (
           <Alert>
             <Info className="h-4 w-4" />
-            <AlertTitle>Eligibility Result</AlertTitle>
-            <AlertDescription className="whitespace-pre-line">{result}</AlertDescription>
+            <AlertTitle>Eligible Programs ({results.length})</AlertTitle>
+            <AlertDescription className="whitespace-pre-line">
+              {results.length > 0 ? (
+                results.map(({ school, major, admitGPARange, enrollGPARange, admitRate }) => (
+                  `${school} - ${major}\n` +
+                  `Admit GPA range: ${admitGPARange[0].toFixed(2)} - ${admitGPARange[1].toFixed(2)}\n` +
+                  `Enroll GPA range: ${enrollGPARange[0].toFixed(2)} - ${enrollGPARange[1].toFixed(2)}\n` +
+                  `Admit rate: ${(admitRate * 100).toFixed(1)}%\n\n`
+                )).join('')
+              ) : 'No eligible programs found for your GPA.'}
+            </AlertDescription>
           </Alert>
         ) : (
           <Alert>
             <Info className="h-4 w-4" />
             <AlertTitle>No results yet</AlertTitle>
+
             <AlertDescription>
-              Enter your GPA, select a UC school and major, then click &quot;Check Eligibility&quot; to see if you meet the criteria.
+              Enter your GPA and optionally select a major, then click &quot;Find Eligible Programs&quot; to see matching UC programs.
             </AlertDescription>
           </Alert>
         )}
